@@ -14,3 +14,12 @@ python3 random_fantom.py <port>
 ## RL
 
 Contains files for Reinforcement Learning
+
+Requirements :
+- Tensorflow
+- Gym
+
+## Resources
+
+- https://medium.com/@apoddar573/making-your-own-custom-environment-in-gym-c3b65ff8cdaa
+- https://adventuresinmachinelearning.com/reinforcement-learning-tensorflow/
