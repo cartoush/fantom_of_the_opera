@@ -17,7 +17,7 @@ class FooEnv(gym.Env):
     self.reset()
 
   def step(self, action):
-    self.game.step()
+    self.game.step(action)
     return self.game.game_state, self.game.get_reward(), self.game.done, []
 
   def reset(self):

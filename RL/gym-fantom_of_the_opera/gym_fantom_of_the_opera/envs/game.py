@@ -148,10 +148,13 @@ class Player:
         or the fantom (player 1)
     """
 
-    def __init__(self, n, agent):
+    def __init__(self, n, agent=None):
         self.numero = n
         self.role = "inspector" if n == 0 else "fantom"
         self.agent = agent
+        
+        # this is the game state returned to the step function
+        self.question = None
 
     def play(self, game):
         logger.info("--\n"+self.role+" plays\n--")
@@ -431,6 +434,484 @@ class Player:
                 q.position = selected_position
                 logger.info("new position : "+str(q))
 
+# *********************************************************************************************** #
+# Functions for letting the model play
+
+    def agent_play(self, game, answer):
+        logger.info("--\n"+self.role+" plays\n--")
+
+        """
+            Choose the character to activate whithin
+            the given choices.
+        """
+        available_characters = [character.display() for character in game.active_tiles]
+        self.question = {"question type": "select character",
+                    "data": available_characters,
+                    "game state": game.game_state}
+        yield False
+        selected_character = answer
+
+        # test
+        # range(len(t)) goes until len(t)-1
+        if selected_character not in range(len(game.active_tiles)):
+            warning_message = (
+                ' !  : selected character not in '
+                'available characters. Choosing random character.'
+            )
+            logger.warning(warning_message)
+            selected_character = random.randint(0, len(game.active_tiles)-1)
+
+        perso = game.active_tiles[selected_character]
+
+        # log
+        logger.info(f"question : {self.question['question type']}")
+        logger.info(f"answer : {perso}")
+
+        del game.active_tiles[selected_character]
+        charact = perso
+
+
+        game.update_game_state()
+        while True:
+            """
+                Use the special power of the character.
+            """
+            # check if the power should be used before of after moving
+            # this depends on the "activables" variable, which is a set.
+            if charact.power and charact.color in before | two:
+                character_color = charact.display()["color"]
+                self.question = {"question type": f"activate {character_color} power",
+                            "data": [0, 1],
+                            "game state": game.game_state}
+                yield False
+                power_activation = answer
+
+                # log
+                logger.info(f"question : {self.question['question type']}")
+                if power_activation == 1:
+                    power_answer = "yes"
+                else:
+                    power_answer = "no"
+                logger.info("answer  : " + power_answer)
+
+                # work
+                if power_activation:
+                    logger.info(charact.color + " power activated")
+                    charact.power = False
+
+                    # red character
+                    if charact.color == "red":
+                        draw = game.cards[0]
+                        logger.info(str(draw) + " was drawn")
+                        if draw == "fantom":
+                            game.position_carlotta += -1 if self.numero == 0 else 1
+                        elif self.numero == 0:
+                            draw.suspect = False
+                        del game.cards[0]
+
+                    # black character
+                    if charact.color == "black":
+                        for q in game.characters:
+                            if q.position in {x for x in passages[charact.position] if x not in game.blocked or q.position not in game.blocked}:
+                                q.position = charact.position
+                                logger.info("new position : "+str(q))
+
+                    # white character
+                    if charact.color == "white":
+                        for q in game.characters:
+                            if q.position == charact.position and charact != q:
+                                disp = {
+                                    x for x in passages[charact.position] if x not in game.blocked or q.position not in game.blocked}
+
+                                # edit
+                                available_positions = list(disp)
+                                self.question = {"question type": "white character power",
+                                            "data": available_positions,
+                                            "game state": game.game_state}
+                                yield False
+                                selected_index = answer
+
+                                # test
+                                if selected_index not in range(len(disp)):
+                                    warning_message = (
+                                        ' !  : selected position not available '
+                                        'Choosing random position.'
+                                    )
+                                    logger.warning(warning_message)
+                                    selected_position = disp.pop()
+
+                                else:
+                                    selected_position = available_positions[selected_index]
+
+                                logger.info(
+                                    f"question : {self.question['question type']}")
+                                logger.info("answer : " +
+                                            str(selected_position))
+                                q.position = selected_position
+                                logger.info("new position : "+str(q))
+
+                    # purple character
+                    if charact.color == "purple":
+                        # logger.debug("Rappel des positions :\n" + str(game))
+
+                        available_characters = list(colors)
+                        self.question = {"question type": "purple character power",
+                                    "data": available_characters,
+                                    "game state": game.game_state}
+                        yield False
+                        selected_index = answer
+
+                        # test
+                        if selected_index not in range(len(colors)):
+                            warning_message = (
+                                ' !  : selected character not available '
+                                'Choosing random character.'
+                            )
+                            logger.warning(warning_message)
+                            selected_character = colors.pop()
+
+                        else:
+                            selected_character = available_characters[selected_index]
+
+                        logger.info(f"question : {self.question['question type']}")
+                        logger.info("answer : "+selected_character)
+
+                        # y a pas plus simple ?
+                        selected_crctr = [x for x in game.characters if x.color
+                                        == selected_character][0]
+                        charact.position, selected_crctr.position = selected_crctr.position, charact.position
+                        logger.info("new position : "+str(charact))
+                        logger.info("new position : "+str(selected_crctr))
+
+                    # brown character
+                    if charact.color == "brown":
+                        # the brown character can take other characters with him
+                        # when moving.
+                        moved_characters = [q for q in game.characters if charact.position == q.position]
+                        break
+
+                    # grey character
+                    if charact.color == "grey":
+
+                        available_rooms = [room for room in range(10)]
+                        self.question = {"question type": "grey character power",
+                                    "data": available_rooms,
+                                    "game state": game.game_state}
+                        yield False
+                        selected_index = answer
+
+                        # test
+                        if selected_index not in range(len(available_rooms)):
+                            warning_message = (
+                                ' !  : selected room not available '
+                                'Choosing random room.'
+                            )
+                            logger.warning(warning_message)
+                            selected_index = random.randint(
+                                0, len(available_rooms)-1)
+                            selected_room = available_rooms[selected_index]
+
+                        else:
+                            selected_room = available_rooms[selected_index]
+
+                        game.shadow = selected_room
+                        logger.info(f"question : {self.question['question type']}")
+                        logger.info("answer : "+str(game.shadow))
+
+                    # blue character
+                    if charact.color == "blue":
+
+                        # choose room
+                        available_rooms = [room for room in range(10)]
+                        self.question = {"question type": "blue character power room",
+                                    "data": available_rooms,
+                                    "game state": game.game_state}
+                        yield False
+                        selected_index = answer
+
+                        # test
+                        if selected_index not in range(len(available_rooms)):
+                            warning_message = (
+                                ' !  : selected room not available '
+                                'Choosing random room.'
+                            )
+                            logger.warning(warning_message)
+                            selected_index = random.randint(
+                                0, len(available_rooms)-1)
+                            selected_room = available_rooms[selected_index]
+
+                        else:
+                            selected_room = available_rooms[selected_index]
+
+                        # choose exit
+                        passages_work = passages[selected_room].copy()
+                        available_exits = list(passages_work)
+                        self.question = {"question type": "blue character power exit",
+                                    "data": available_exits,
+                                    "game state": game.game_state}
+                        yield False
+                        selected_index = answer
+
+                        # test
+                        if selected_index not in range(len(available_exits)):
+                            warning_message = (
+                                ' !  : selected exit not available '
+                                'Choosing random exit.'
+                            )
+                            logger.warning(warning_message)
+                            selected_exit = passages_work.pop()
+
+                        else:
+                            selected_exit = available_exits[selected_index]
+
+                        logger.info(f"question : {self.question['question type']}")
+                        logger.info("answer : " +
+                                    str({selected_room, selected_exit}))
+                        game.blocked = {selected_room, selected_exit}
+            moved_characters = [charact]
+            break
+
+        game.update_game_state()
+        while True:
+            """
+                Select a new position for the character.
+            """
+            blocked = game.blocked
+            pass_act = pink_passages if charact.color == 'pink' else passages
+            if charact.color != 'purple' or charact.power:
+                disp = {x for x in pass_act[charact.position]
+                        if charact.position not in blocked or x not in blocked}
+
+                available_positions = list(disp)
+                self.question = {"question type": "select position",
+                            "data": available_positions,
+                            "game state": game.game_state}
+                yield False
+                selected_index = answer
+
+                # test
+                if selected_index not in range(len(disp)):
+                    warning_message = (
+                        ' !  : selected position not available '
+                        'Choosing random position.'
+                    )
+                    logger.warning(warning_message)
+                    selected_position = disp.pop()
+
+                else:
+                    selected_position = available_positions[selected_index]
+
+                logger.info(f"question : {self.question['question type']}")
+                logger.info("answer : "+str(selected_position))
+
+                if len(moved_characters) > 1:
+                    logger.debug("more than one character moves")
+                for q in moved_characters:
+                    q.position = selected_position
+                    logger.info("new position : "+str(q))
+            break
+
+        game.update_game_state()
+        while True:
+            """
+                Use the special power of the character.
+            """
+            # check if the power should be used before of after moving
+            # this depends on the "activables" variable, which is a set.
+            if charact.power and charact.color in after | two:
+                character_color = charact.display()["color"]
+                self.question = {"question type": f"activate {character_color} power",
+                            "data": [0, 1],
+                            "game state": game.game_state}
+                yield False
+                power_activation = answer
+
+                # log
+                logger.info(f"question : {self.question['question type']}")
+                if power_activation == 1:
+                    power_answer = "yes"
+                else:
+                    power_answer = "no"
+                logger.info("answer  : " + power_answer)
+
+                # work
+                if power_activation:
+                    logger.info(charact.color + " power activated")
+                    charact.power = False
+
+                    # red character
+                    if charact.color == "red":
+                        draw = game.cards[0]
+                        logger.info(str(draw) + " was drawn")
+                        if draw == "fantom":
+                            game.position_carlotta += -1 if self.numero == 0 else 1
+                        elif self.numero == 0:
+                            draw.suspect = False
+                        del game.cards[0]
+
+                    # black character
+                    if charact.color == "black":
+                        for q in game.characters:
+                            if q.position in {x for x in passages[charact.position] if x not in game.blocked or q.position not in game.blocked}:
+                                q.position = charact.position
+                                logger.info("new position : "+str(q))
+
+                    # white character
+                    if charact.color == "white":
+                        for q in game.characters:
+                            if q.position == charact.position and charact != q:
+                                disp = {
+                                    x for x in passages[charact.position] if x not in game.blocked or q.position not in game.blocked}
+
+                                # edit
+                                available_positions = list(disp)
+                                self.question = {"question type": "white character power",
+                                            "data": available_positions,
+                                            "game state": game.game_state}
+                                yield False
+                                selected_index = answer
+
+                                # test
+                                if selected_index not in range(len(disp)):
+                                    warning_message = (
+                                        ' !  : selected position not available '
+                                        'Choosing random position.'
+                                    )
+                                    logger.warning(warning_message)
+                                    selected_position = disp.pop()
+
+                                else:
+                                    selected_position = available_positions[selected_index]
+
+                                logger.info(
+                                    f"question : {self.question['question type']}")
+                                logger.info("answer : " +
+                                            str(selected_position))
+                                q.position = selected_position
+                                logger.info("new position : "+str(q))
+
+                    # purple character
+                    if charact.color == "purple":
+                        # logger.debug("Rappel des positions :\n" + str(game))
+
+                        available_characters = list(colors)
+                        self.question = {"question type": "purple character power",
+                                    "data": available_characters,
+                                    "game state": game.game_state}
+                        yield False
+                        selected_index = answer
+
+                        # test
+                        if selected_index not in range(len(colors)):
+                            warning_message = (
+                                ' !  : selected character not available '
+                                'Choosing random character.'
+                            )
+                            logger.warning(warning_message)
+                            selected_character = colors.pop()
+
+                        else:
+                            selected_character = available_characters[selected_index]
+
+                        logger.info(f"question : {self.question['question type']}")
+                        logger.info("answer : "+selected_character)
+
+                        # y a pas plus simple ?
+                        selected_crctr = [x for x in game.characters if x.color
+                                          == selected_character][0]
+                        charact.position, selected_crctr.position = selected_crctr.position, charact.position
+                        logger.info("new position : "+str(charact))
+                        logger.info("new position : "+str(selected_crctr))
+
+                    # brown character
+                    if charact.color == "brown":
+                        # the brown character can take other characters with him
+                        # when moving.
+                        moved_characters = [
+                            q for q in game.characters if charact.position == q.position]
+                        break
+
+                    # grey character
+                    if charact.color == "grey":
+
+                        available_rooms = [room for room in range(10)]
+                        self.question = {"question type": "grey character power",
+                                    "data": available_rooms,
+                                    "game state": game.game_state}
+                        yield False
+                        selected_index = answer
+
+                        # test
+                        if selected_index not in range(len(available_rooms)):
+                            warning_message = (
+                                ' !  : selected room not available '
+                                'Choosing random room.'
+                            )
+                            logger.warning(warning_message)
+                            selected_index = random.randint(
+                                0, len(available_rooms)-1)
+                            selected_room = available_rooms[selected_index]
+
+                        else:
+                            selected_room = available_rooms[selected_index]
+
+                        game.shadow = selected_room
+                        logger.info(f"question : {self.question['question type']}")
+                        logger.info("answer : "+str(game.shadow))
+
+                    # blue character
+                    if charact.color == "blue":
+
+                        # choose room
+                        available_rooms = [room for room in range(10)]
+                        self.question = {"question type": "blue character power room",
+                                    "data": available_rooms,
+                                    "game state": game.game_state}
+                        yield False
+                        selected_index = answer
+
+                        # test
+                        if selected_index not in range(len(available_rooms)):
+                            warning_message = (
+                                ' !  : selected room not available '
+                                'Choosing random room.'
+                            )
+                            logger.warning(warning_message)
+                            selected_index = random.randint(
+                                0, len(available_rooms)-1)
+                            selected_room = available_rooms[selected_index]
+
+                        else:
+                            selected_room = available_rooms[selected_index]
+
+                        # choose exit
+                        passages_work = passages[selected_room].copy()
+                        available_exits = list(passages_work)
+                        self.question = {"question type": "blue character power exit",
+                                    "data": available_exits,
+                                    "game state": game.game_state}
+                        yield False
+                        selected_index = answer
+
+                        # test
+                        if selected_index not in range(len(available_exits)):
+                            warning_message = (
+                                ' !  : selected exit not available '
+                                'Choosing random exit.'
+                            )
+                            logger.warning(warning_message)
+                            selected_exit = passages_work.pop()
+
+                        else:
+                            selected_exit = available_exits[selected_index]
+
+                        logger.info(f"question : {self.question['question type']}")
+                        logger.info("answer : " +
+                                    str({selected_room, selected_exit}))
+                        game.blocked = {selected_room, selected_exit}
+            moved_characters = [charact]
+            break
+        return True
 
 class Game:
     """
@@ -439,6 +920,7 @@ class Game:
     """
 
     def __init__(self, players):
+        self.done = False
         self.players = players
         self.position_carlotta, self.exit, self.num_tour, self.shadow, x = 4, 22, 1, randrange(
             10), randrange(10)
@@ -479,17 +961,6 @@ class Game:
             "tiles": self.tiles_display,
         }
 
-    def actions(self):
-        player_actif = self.num_tour % 2
-        if player_actif == 1:
-            logger.info(f"-\nshuffle {len(self.tiles)} tiles\n-")
-            shuffle(self.tiles)
-            self.active_tiles = self.tiles[:4]
-        else:
-            self.active_tiles = self.tiles[4:]
-        for i in [player_actif, 1-player_actif, 1-player_actif, player_actif]:
-            self.players[i].play(self)
-
     def lumiere(self):
         partition = [{p for p in self.characters if p.position == i}
                      for i in range(10)]
@@ -509,42 +980,89 @@ class Game:
         self.position_carlotta += len(
             [p for p in self.characters if p.suspect])
 
-    def tour(self):
+    def tour(self, answer):
         # log
         logger.info("\n------------------")
         logger.info(self)
         logger.debug(json.dumps(self.update_game_state(), indent=4))
 
         # work
-        self.actions()
+        player_actif = self.num_tour % 2
+        
+        if player_actif == 1:
+            logger.info(f"-\nshuffle {len(self.tiles)} tiles\n-")
+            shuffle(self.tiles)
+            self.active_tiles = self.tiles[:4]
+        else:
+            self.active_tiles = self.tiles[4:]
+        
+        ##AI playing first
+        if self.players[player_actif].agent is not None:
+            agent_done = False
+            while True:
+                if self.players[player_actif].agent_play(
+                    self, answer) is True:
+                    break
+                yield
+            self.players[(player_actif + 1) % 2].play(self)
+            self.players[(player_actif + 1) % 2].play(self)
+            agent_done = False
+            while True:
+                if self.players[player_actif].agent_play(
+                        self, answer) is True:
+                    break
+                yield
+        else:
+            self.players[(player_actif + 1) % 2].play(self)
+            agent_done = False
+            while True:
+                if self.players[player_actif].agent_play(
+                        self, answer) is True:
+                    break
+                yield
+            agent_done = False
+            while True:
+                if self.players[player_actif].agent_play(
+                        self, answer) is True:
+                    break
+                yield
+            self.players[(player_actif + 1) % 2].play(self)
+
+        for i in [player_actif, 1-player_actif, 1-player_actif, player_actif]:
+            self.players[i].play(self)
+        
         self.lumiere()
         for p in self.characters:
             p.power = True
         self.num_tour += 1
 
-    def step(self):
+    def step(self, answer):
         # work
         if self.position_carlotta < self.exit and len([p for p in self.characters if p.suspect]) > 1:
-            self.tour()
+            self.tour(answer)
         if self.position_carlotta >= self.exit:
+            self.done = True
             self.players[0].agent.set_win(True)
             self.players[1].agent.set_win(False)
         elif glob.gnb_suspects == 0:
+            self.done = True
             self.players[0].agent.set_win(False)
             self.players[1].agent.set_win(True)
         # game ends
-        if self.position_carlotta < self.exit:
+        if self.done is True:
+            if self.position_carlotta < self.exit:
+                logger.info(
+                    "----------\n---- inspector wins : fantom is " + str(self.fantom))
+            else:
+                logger.info("----------\n---- fantom wins")
+            # log
             logger.info(
-                "----------\n---- inspector wins : fantom is " + str(self.fantom))
-        else:
-            logger.info("----------\n---- fantom wins")
-        # log
-        logger.info(
-            f"---- final position of Carlotta : {self.position_carlotta}")
-        logger.info(f"---- exit : {self.exit}")
-        logger.info(
-            f"---- final score : {self.exit-self.position_carlotta}\n----------")
-        return self.exit - self.position_carlotta
+                f"---- final position of Carlotta : {self.position_carlotta}")
+            logger.info(f"---- exit : {self.exit}")
+            logger.info(
+                f"---- final score : {self.exit-self.position_carlotta}\n----------")
+        
+        return
 
     # def lancer(self):
     #     """
