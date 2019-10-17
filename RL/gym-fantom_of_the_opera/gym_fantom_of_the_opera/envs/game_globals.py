@@ -11,7 +11,7 @@ gnb_suspects = 8
 gold_game_state = {}
 ggame_state = {}
 
-gwin = 0
+gwinner = None
 
 gnb_session = 0
 

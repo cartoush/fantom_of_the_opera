@@ -9,7 +9,7 @@ import json
 import socket
 import protocol
 
-import glob
+import game_globals
 import agent_inspector as inspector
 import agent_fantom as fantom
 
@@ -437,7 +437,7 @@ class Player:
 # *********************************************************************************************** #
 # Functions for letting the model play
 
-    def agent_play(self, game, answer):
+    def agent_play(self, game):
         logger.info("--\n"+self.role+" plays\n--")
 
         """
@@ -449,7 +449,7 @@ class Player:
                     "data": available_characters,
                     "game state": game.game_state}
         yield False
-        selected_character = answer
+        selected_character = game.answer
 
         # test
         # range(len(t)) goes until len(t)-1
@@ -484,7 +484,7 @@ class Player:
                             "data": [0, 1],
                             "game state": game.game_state}
                 yield False
-                power_activation = answer
+                power_activation = game.answer
 
                 # log
                 logger.info(f"question : {self.question['question type']}")
@@ -529,7 +529,7 @@ class Player:
                                             "data": available_positions,
                                             "game state": game.game_state}
                                 yield False
-                                selected_index = answer
+                                selected_index = game.answer
 
                                 # test
                                 if selected_index not in range(len(disp)):
@@ -559,7 +559,7 @@ class Player:
                                     "data": available_characters,
                                     "game state": game.game_state}
                         yield False
-                        selected_index = answer
+                        selected_index = game.answer
 
                         # test
                         if selected_index not in range(len(colors)):
@@ -598,7 +598,7 @@ class Player:
                                     "data": available_rooms,
                                     "game state": game.game_state}
                         yield False
-                        selected_index = answer
+                        selected_index = game.answer
 
                         # test
                         if selected_index not in range(len(available_rooms)):
@@ -627,7 +627,7 @@ class Player:
                                     "data": available_rooms,
                                     "game state": game.game_state}
                         yield False
-                        selected_index = answer
+                        selected_index = game.answer
 
                         # test
                         if selected_index not in range(len(available_rooms)):
@@ -650,7 +650,7 @@ class Player:
                                     "data": available_exits,
                                     "game state": game.game_state}
                         yield False
-                        selected_index = answer
+                        selected_index = game.answer
 
                         # test
                         if selected_index not in range(len(available_exits)):
@@ -687,7 +687,7 @@ class Player:
                             "data": available_positions,
                             "game state": game.game_state}
                 yield False
-                selected_index = answer
+                selected_index = game.answer
 
                 # test
                 if selected_index not in range(len(disp)):
@@ -724,7 +724,7 @@ class Player:
                             "data": [0, 1],
                             "game state": game.game_state}
                 yield False
-                power_activation = answer
+                power_activation = game.answer
 
                 # log
                 logger.info(f"question : {self.question['question type']}")
@@ -769,7 +769,7 @@ class Player:
                                             "data": available_positions,
                                             "game state": game.game_state}
                                 yield False
-                                selected_index = answer
+                                selected_index = game.answer
 
                                 # test
                                 if selected_index not in range(len(disp)):
@@ -799,7 +799,7 @@ class Player:
                                     "data": available_characters,
                                     "game state": game.game_state}
                         yield False
-                        selected_index = answer
+                        selected_index = game.answer
 
                         # test
                         if selected_index not in range(len(colors)):
@@ -839,7 +839,7 @@ class Player:
                                     "data": available_rooms,
                                     "game state": game.game_state}
                         yield False
-                        selected_index = answer
+                        selected_index = game.answer
 
                         # test
                         if selected_index not in range(len(available_rooms)):
@@ -868,7 +868,7 @@ class Player:
                                     "data": available_rooms,
                                     "game state": game.game_state}
                         yield False
-                        selected_index = answer
+                        selected_index = game.answer
 
                         # test
                         if selected_index not in range(len(available_rooms)):
@@ -891,7 +891,7 @@ class Player:
                                     "data": available_exits,
                                     "game state": game.game_state}
                         yield False
-                        selected_index = answer
+                        selected_index = game.answer
 
                         # test
                         if selected_index not in range(len(available_exits)):
@@ -911,7 +911,7 @@ class Player:
                         game.blocked = {selected_room, selected_exit}
             moved_characters = [charact]
             break
-        return True
+        yield True
 
 class Game:
     """
@@ -961,6 +961,8 @@ class Game:
             "tiles": self.tiles_display,
         }
 
+        self.gen_step = self.tour()
+
     def lumiere(self):
         partition = [{p for p in self.characters if p.position == i}
                      for i in range(10)]
@@ -980,12 +982,13 @@ class Game:
         self.position_carlotta += len(
             [p for p in self.characters if p.suspect])
 
-    def tour(self, answer):
+    def tour(self):
         # log
         logger.info("\n------------------")
         logger.info(self)
         logger.debug(json.dumps(self.update_game_state(), indent=4))
 
+        print("bite")
         # work
         player_actif = self.num_tour % 2
         
@@ -997,57 +1000,49 @@ class Game:
             self.active_tiles = self.tiles[4:]
         
         ##AI playing first
-        if self.players[player_actif].agent is not None:
-            agent_done = False
-            while True:
-                if self.players[player_actif].agent_play(
-                    self, answer) is True:
-                    break
-                yield
+        if self.players[player_actif].agent is None:
+            play_agent = self.players[player_actif].agent_play(self)
+            for _ in play_agent:
+                yield False
             self.players[(player_actif + 1) % 2].play(self)
             self.players[(player_actif + 1) % 2].play(self)
-            agent_done = False
-            while True:
-                if self.players[player_actif].agent_play(
-                        self, answer) is True:
+            play_agent = self.players[player_actif].agent_play(self)
+            for q in play_agent:
+                if q is False:
+                    yield False
+                else:
                     break
-                yield
         else:
-            self.players[(player_actif + 1) % 2].play(self)
-            agent_done = False
-            while True:
-                if self.players[player_actif].agent_play(
-                        self, answer) is True:
+            self.players[player_actif].play(self)
+            play_agent = self.players[player_actif].agent_play(self)
+            for _ in play_agent:
+                yield False
+            play_agent = self.players[player_actif].agent_play(self)
+            for q in play_agent:
+                if q is False:
+                    yield False
+                else:
                     break
-                yield
-            agent_done = False
-            while True:
-                if self.players[player_actif].agent_play(
-                        self, answer) is True:
-                    break
-                yield
-            self.players[(player_actif + 1) % 2].play(self)
-
-        for i in [player_actif, 1-player_actif, 1-player_actif, player_actif]:
-            self.players[i].play(self)
+            self.players[player_actif].play(self)
         
         self.lumiere()
         for p in self.characters:
             p.power = True
         self.num_tour += 1
+        yield True
 
     def step(self, answer):
         # work
+        self.answer = answer
         if self.position_carlotta < self.exit and len([p for p in self.characters if p.suspect]) > 1:
-            self.tour(answer)
+            if next(self.gen_step) is True:
+                self.gen_step = self.tour()
         if self.position_carlotta >= self.exit:
             self.done = True
-            self.players[0].agent.set_win(True)
-            self.players[1].agent.set_win(False)
-        elif glob.gnb_suspects == 0:
+            game_globals.gwinner = "fantom"
+        elif game_globals.gnb_suspects == 0:
             self.done = True
-            self.players[0].agent.set_win(False)
-            self.players[1].agent.set_win(True)
+            game_globals.gwinner = "inspector"
         # game ends
         if self.done is True:
             if self.position_carlotta < self.exit:
@@ -1061,8 +1056,7 @@ class Game:
             logger.info(f"---- exit : {self.exit}")
             logger.info(
                 f"---- final score : {self.exit-self.position_carlotta}\n----------")
-        
-        return
+        return self.done
 
     # def lancer(self):
     #     """

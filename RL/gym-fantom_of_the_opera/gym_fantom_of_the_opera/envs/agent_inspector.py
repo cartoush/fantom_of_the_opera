@@ -8,7 +8,7 @@ import random
 import time
 import sys
 
-import glob
+import game_globals
 
 # host = "localhost"
 # # port = 12000
@@ -85,17 +85,17 @@ class PlayerInspector():
         for char in game_state["characters"]:
             if char["suspect"]:
                 nbs += 1
-        glob.gold_position_carlotta = glob.gposition_carlotta
-        glob.gold_nb_suspects = glob.gnb_suspects
-        glob.gposition_carlotta = game_state["position_carlotta"]
-        glob.nb_suspects = nbs
-        glob.gold_game_state = glob.ggame_state
-        glob.ggame_state = game_state
+        game_globals.gold_position_carlotta = game_globals.gposition_carlotta
+        game_globals.gold_nb_suspects = game_globals.gnb_suspects
+        game_globals.gposition_carlotta = game_state["position_carlotta"]
+        game_globals.nb_suspects = nbs
+        game_globals.gold_game_state = game_globals.ggame_state
+        game_globals.ggame_state = game_state
 
 
     def evaluate_reward(self):
-        carlotta_reward = (glob.gold_position_carlotta - glob.gposition_carlotta)
-        suspects_reward = (glob.gold_nb_suspects - glob.gnb_suspects) * 3
+        carlotta_reward = (game_globals.gold_position_carlotta - game_globals.gposition_carlotta)
+        suspects_reward = (game_globals.gold_nb_suspects - game_globals.gnb_suspects) * 3
 
         return (carlotta_reward + suspects_reward + self.win) * 10
 
