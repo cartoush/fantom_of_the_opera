@@ -154,7 +154,7 @@ class Player:
         self.agent = agent
         
         # this is the game state returned to the step function
-        self.question = None
+        self.question = {"nb_choices": 8}
 
     def play(self, game):
         logger.info("--\n"+self.role+" plays\n--")
@@ -445,6 +445,7 @@ class Player:
             the given choices.
         """
         available_characters = [character.display() for character in game.active_tiles]
+        print("bitebitebite")
         self.question = {"question type": "select character",
                     "data": available_characters,
                     "game state": game.game_state}
@@ -686,6 +687,7 @@ class Player:
                 self.question = {"question type": "select position",
                             "data": available_positions,
                             "game state": game.game_state}
+                print("bitebitebitebite")
                 yield False
                 selected_index = game.answer
 
@@ -961,6 +963,8 @@ class Game:
             "tiles": self.tiles_display,
         }
 
+        self.player_in_training = players[0] if players[0].agent is None else players[1]
+        game_globals.gtrained_player = self.player_in_training.role
         self.gen_step = self.tour()
 
     def lumiere(self):
@@ -988,7 +992,6 @@ class Game:
         logger.info(self)
         logger.debug(json.dumps(self.update_game_state(), indent=4))
 
-        print("bite")
         # work
         player_actif = self.num_tour % 2
         
@@ -1034,9 +1037,12 @@ class Game:
     def step(self, answer):
         # work
         self.answer = answer
+        if answer >= self.player_in_training.question["nb_choices"]:
+            game_globals.ganswer_correct_range = self.player_in_training.question["nb_choices"] - answer * 5
         if self.position_carlotta < self.exit and len([p for p in self.characters if p.suspect]) > 1:
             if next(self.gen_step) is True:
                 self.gen_step = self.tour()
+            self.player_in_training.question["nb_choices"] = len(self.player_in_training.question["data"])
         if self.position_carlotta >= self.exit:
             self.done = True
             game_globals.gwinner = "fantom"
@@ -1056,7 +1062,7 @@ class Game:
             logger.info(f"---- exit : {self.exit}")
             logger.info(
                 f"---- final score : {self.exit-self.position_carlotta}\n----------")
-        return self.done
+        return self.player_in_training.question, game_globals.calc_reward(True), self.done, {}
 
     # def lancer(self):
     #     """
@@ -1113,6 +1119,7 @@ class Game:
             "tiles": self.tiles_display,
         }
 
+        game_globals.update_game_state(self.game_state)
         return self.game_state
 
 
