@@ -208,3 +208,5 @@ dmypy.json
 ./RL/logs/
 ./RL/unified/logs/
 .vscode/
+./.idea/
+./RL/gym-fantom_of_the_opera/gym_fantom_of_the_opera/envs/logs/

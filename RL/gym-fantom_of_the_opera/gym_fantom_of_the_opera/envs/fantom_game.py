@@ -445,7 +445,6 @@ class Player:
             the given choices.
         """
         available_characters = [character.display() for character in game.active_tiles]
-        print("bitebitebite")
         self.question = {"question type": "select character",
                     "data": available_characters,
                     "game state": game.game_state}
@@ -687,7 +686,6 @@ class Player:
                 self.question = {"question type": "select position",
                             "data": available_positions,
                             "game state": game.game_state}
-                print("bitebitebitebite")
                 yield False
                 selected_index = game.answer
 
@@ -1039,14 +1037,15 @@ class Game:
         self.answer = answer
         if answer >= self.player_in_training.question["nb_choices"]:
             game_globals.ganswer_correct_range = self.player_in_training.question["nb_choices"] - answer * 5
-        if self.position_carlotta < self.exit and len([p for p in self.characters if p.suspect]) > 1:
+        game_globals.gnb_suspects = len([p for p in self.characters if p.suspect])
+        if self.position_carlotta < self.exit and game_globals.gnb_suspects > 1:
             if next(self.gen_step) is True:
                 self.gen_step = self.tour()
             self.player_in_training.question["nb_choices"] = len(self.player_in_training.question["data"])
         if self.position_carlotta >= self.exit:
             self.done = True
             game_globals.gwinner = "fantom"
-        elif game_globals.gnb_suspects == 0:
+        elif game_globals.gnb_suspects == 1:
             self.done = True
             game_globals.gwinner = "inspector"
         # game ends
