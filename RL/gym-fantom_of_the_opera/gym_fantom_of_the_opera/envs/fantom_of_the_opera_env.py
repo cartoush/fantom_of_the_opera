@@ -2,14 +2,14 @@ import gym
 from gym import error, spaces, utils
 from gym.utils import seeding
 
-import fantom_game
-from fantom_game import Player
-from fantom_game import Game
-import agent_fantom as fantom
-import agent_inspector as inspector
-import game_globals
+from . import fantom_game
+from .fantom_game import Player
+from .fantom_game import Game
+from . import agent_fantom as fantom
+from . import agent_inspector as inspector
+from . import game_globals
 
-class FooEnv(gym.Env):
+class FantomOfTheOperaEnv(gym.Env):
   metadata = {'render.modes': ['human']}
 
   def __init__(self):
@@ -19,8 +19,8 @@ class FooEnv(gym.Env):
     return self.game.step(action)
 
   def reset(self):
-    players = [Player(0, inspector.PlayerInspector(self.nb_session)), Player(
-        1, fantom.PlayerFantom(self.nb_session))]
+    players = [Player(0, inspector.PlayerInspector(game_globals.gnb_session)), Player(
+        1, fantom.PlayerFantom(game_globals.gnb_session))]
     self.game = Game(players)
     game_globals.reset()
 

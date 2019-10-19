@@ -2,13 +2,13 @@ import socket
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-import protocol
+from . import protocol
 from random import randrange
 import random
 import time
 import sys
 
-import game_globals
+from . import game_globals
 
 # host = "localhost"
 # # port = 12000

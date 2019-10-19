@@ -7,11 +7,11 @@ import logging
 from logging.handlers import RotatingFileHandler
 import json
 import socket
-import protocol
+from . import protocol
 
-import game_globals
-import agent_inspector as inspector
-import agent_fantom as fantom
+from . import game_globals
+from . import agent_inspector as inspector
+from . import agent_fantom as fantom
 
 # """
 #     server setup
