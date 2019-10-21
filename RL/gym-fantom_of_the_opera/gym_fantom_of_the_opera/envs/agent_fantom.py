@@ -30,8 +30,8 @@ class PlayerFantom():
         """
         set up fantom logging
         """
-        self.fantom_logger = logging.getLogger()
-        self.fantom_logger.setLevel(logging.DEBUG)
+        # self.fantom_logger = logging.getLogger()
+        # self.fantom_logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
             "%(asctime)s :: %(levelname)s :: %(message)s", "%H:%M:%S")
         filename = "./logs/fantom" + str(nb_session) + ".log"
@@ -41,11 +41,11 @@ class PlayerFantom():
         file_handler = RotatingFileHandler(filename, 'a', 1000000, 1)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
-        self.fantom_logger.addHandler(file_handler)
+        # self.fantom_logger.addHandler(file_handler)
         # stream
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(logging.WARNING)
-        self.fantom_logger.addHandler(stream_handler)
+        # self.fantom_logger.addHandler(stream_handler)
 
 
     # def connect(self):
@@ -60,12 +60,12 @@ class PlayerFantom():
         game_state = question["game state"]
         response_index = random.randint(0, len(data)-1)
         # log
-        self.fantom_logger.debug("|\n|")
-        self.fantom_logger.debug("fantom answers")
-        self.fantom_logger.debug(f"question type ----- {question['question type']}")
-        self.fantom_logger.debug(f"data -------------- {data}")
-        self.fantom_logger.debug(f"response index ---- {response_index}")
-        self.fantom_logger.debug(f"response ---------- {data[response_index]}")
+        # self.fantom_logger.debug("|\n|")
+        # self.fantom_logger.debug("fantom answers")
+        # self.fantom_logger.debug(f"question type ----- {question['question type']}")
+        # self.fantom_logger.debug(f"data -------------- {data}")
+        # self.fantom_logger.debug(f"response index ---- {response_index}")
+        # self.fantom_logger.debug(f"response ---------- {data[response_index]}")
         return response_index
 
 

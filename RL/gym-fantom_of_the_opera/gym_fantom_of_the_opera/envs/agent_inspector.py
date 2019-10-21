@@ -31,8 +31,8 @@ class PlayerInspector():
         """
         set up inspector logging
         """
-        self.inspector_logger = logging.getLogger()
-        self.inspector_logger.setLevel(logging.DEBUG)
+        # self.inspector_logger = logging.getLogger()
+        # self.inspector_logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
             "%(asctime)s :: %(levelname)s :: %(message)s", "%H:%M:%S")
         filename = "./logs/inspector" + str(self.nb_session) + ".log"
@@ -42,11 +42,11 @@ class PlayerInspector():
         file_handler = RotatingFileHandler(filename, 'a', 1000000, 1)
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(formatter)
-        self.inspector_logger.addHandler(file_handler)
+        # self.inspector_logger.addHandler(file_handler)
         # stream
         stream_handler = logging.StreamHandler()
         stream_handler.setLevel(logging.WARNING)
-        self.inspector_logger.addHandler(stream_handler)
+        # self.inspector_logger.addHandler(stream_handler)
 
 
     # def connect(self):
@@ -61,12 +61,12 @@ class PlayerInspector():
         game_state = question["game state"]
         response_index = random.randint(0, len(data)-1)
         # log
-        self.inspector_logger.debug("|\n|")
-        self.inspector_logger.debug("inspector answers")
-        self.inspector_logger.debug(f"question type ----- {question['question type']}")
-        self.inspector_logger.debug(f"data -------------- {data}")
-        self.inspector_logger.debug(f"response index ---- {response_index}")
-        self.inspector_logger.debug(f"response ---------- {data[response_index]}")
+        # self.inspector_logger.debug("|\n|")
+        # self.inspector_logger.debug("inspector answers")
+        # self.inspector_logger.debug(f"question type ----- {question['question type']}")
+        # self.inspector_logger.debug(f"data -------------- {data}")
+        # self.inspector_logger.debug(f"response index ---- {response_index}")
+        # self.inspector_logger.debug(f"response ---------- {data[response_index]}")
         return response_index
 
     #*********************************************************************************#
