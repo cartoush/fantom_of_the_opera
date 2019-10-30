@@ -56,15 +56,23 @@ def build_model(input_size, output_size):
 def train_model(training_data):
     x = np.array([i[0] for i in training_data]).reshape(-1, len(training_data[0][0]))
     y = np.array([i[1] for i in training_data]).reshape(-1, len(training_data[0][1]))
+    new_y = []
+    for thing in y:
+        new_thing = []
+        for truc in thing[0]:
+            new_thing.append(truc)
+        new_y.append(new_thing)
     g = training_data[0]
     h = training_data[1]
     model = build_model(input_size=len(x[0]), output_size=len(y[0]))
 
-    model.fit(x, y, epochs=10)
+    print(x)
+    print(new_y)
+    model.fit(x, new_y, epochs=10)
     return model
 
 
-training_data = model_data_preparation()
+# training_data = model_data_preparation()
 
-trained_model = train_model(training_data)
+# trained_model = train_model(training_data)
 
