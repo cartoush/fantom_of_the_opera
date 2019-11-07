@@ -857,6 +857,7 @@ class Game:
         elif game_globals.gnb_suspects == 1:
             self.done = True
             game_globals.gwinner = "inspector"
+        self.update_game_state()
         return self.player_in_training.question, game_globals.calc_reward(True), self.done, {}
 
     def __repr__(self):

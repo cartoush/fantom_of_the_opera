@@ -36,6 +36,8 @@ class FantomOfTheOperaFantomEnv(gym.Env):
     players = [Player(0, inspector.PlayerInspector(game_globals.gnb_session)), Player(1)]
     self.game = Game(players)
     game_globals.reset()
+    self.game.step(0)
+    return self.game.player_in_training.question
 
 
   def render(self, mode='human', close=False):
