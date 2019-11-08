@@ -18,7 +18,10 @@ class A2CAgent:
     def test(self, env, render=True):
         obs, done, ep_reward = env.reset(), False, 0
         while not done:
-            action, _ = self.model.action_value(obs[None, :])
+            #print("\n", obs, "\n")
+            hashed_obs = self.hash_obs(obs)
+            #print(hashed_obs, "\n")
+            action, _ = self.model.action_value(hashed_obs)
             obs, reward, done, _ = env.step(action)
             ep_reward += reward
             if render:
@@ -83,3 +86,39 @@ class A2CAgent:
         # advantages are returns - baseline, value estimates in our case
         advantages = returns - values
         return returns, advantages
+
+    def hash_obs(self, obs):
+        if type(obs) == dict:
+            hashed_obs = self.hash_dict(obs)
+        elif type(obs) == list:
+            hashed_obs = self.hash_list(obs)
+        else: # for CartPole
+            hashed_obs = np.array([])
+            for a in obs:
+                hashed_obs = np.append(hashed_obs, hash(a))
+            #hashed_obs = obs
+        print("\nlength: ", len(hashed_obs))        
+        hashed_obs = hashed_obs[None, :]    
+        return hashed_obs
+
+    def hash_list(self, raw):
+        hashed_list = np.array([])
+        for a in raw:
+            if type(a) == list:
+                hashed_list = np.append(hashed_list, self.hash_list(a))
+            if type(a) == dict:
+                hashed_list = np.append(hashed_list, self.hash_dict(a))
+            else:
+                hashed_list = np.append(hashed_list, hash(a))
+        return hashed_list
+
+    def hash_dict(self, raw):
+        hashed_dict = np.array([])
+        for a in raw:
+            if type(raw[a]) == list:
+                hashed_dict = np.append(hashed_dict, self.hash_list(raw[a]))
+            elif type(raw[a]) == dict:
+                hashed_dict = np.append(hashed_dict, self.hash_dict(raw[a]))
+            else:
+                hashed_dict = np.append(hashed_dict, hash(raw[a]))
+        return hashed_dict
