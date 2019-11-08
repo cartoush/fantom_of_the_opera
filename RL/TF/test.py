@@ -43,10 +43,18 @@ def hash_dict(raw):
             hashed_dict = np.append(hashed_dict, hash_dict(raw[a]))
         else:
             hashed_dict = np.append(hashed_dict, hash(raw[a]))
+        if a == 'data': # padding data so it's always the same size
+            padding = (29 - len(hashed_dict))
+            #print("DATAAAAAAAAAAAAAAAAAA --- ", len(hashed_dict))
+            if padding > 0:
+                hashed_dict = np.append(hashed_dict, [0] * padding)
+                #print("after --- ", len(hashed_dict))
+            else:
+                print("===> ERROOOOOR: data is already too long !!!!")
     return hashed_dict
 
-#env = gym.make('fantom_of_the_opera_fantom-v0')
-env = gym.make('CartPole-v0')
+env = gym.make('fantom_of_the_opera_fantom-v0')
+#env = gym.make('CartPole-v0')
 model = Model(num_actions=env.action_space.n)
 obs = env.reset()
 #print("\n\n", obs)
@@ -65,7 +73,7 @@ print("value :")
 print(value)
 agent = A2CAgent(model)
 rewards_sum = agent.test(env)
-print("%d out of 200" % rewards_sum)
+print("\n%d out of 200" % rewards_sum)
 rewards_history = agent.train(env)
 print("Finished training, testing...")
 print("Before training: %d out of 200" % rewards_sum)

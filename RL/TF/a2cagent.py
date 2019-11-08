@@ -18,10 +18,12 @@ class A2CAgent:
     def test(self, env, render=True):
         obs, done, ep_reward = env.reset(), False, 0
         while not done:
-            #print("\n", obs, "\n")
+            print("\n", obs)
+            #self.obs_test(obs)
             hashed_obs = self.hash_obs(obs)
             #print(hashed_obs, "\n")
             action, _ = self.model.action_value(hashed_obs)
+            print("action: ", action)
             obs, reward, done, _ = env.step(action)
             ep_reward += reward
             if render:
@@ -97,8 +99,8 @@ class A2CAgent:
             for a in obs:
                 hashed_obs = np.append(hashed_obs, hash(a))
             #hashed_obs = obs
-        print("\nlength: ", len(hashed_obs))        
-        hashed_obs = hashed_obs[None, :]    
+        #print("\nlength: ", len(hashed_obs))        
+        hashed_obs = hashed_obs[None, :]
         return hashed_obs
 
     def hash_list(self, raw):
@@ -121,4 +123,69 @@ class A2CAgent:
                 hashed_dict = np.append(hashed_dict, self.hash_dict(raw[a]))
             else:
                 hashed_dict = np.append(hashed_dict, hash(raw[a]))
+            if a == 'data': # padding data so it's always the same size
+                    padding = (29 - len(hashed_dict))
+                    #print("DATAAAAAAAAAAAAAAAAAA --- ", len(hashed_dict))
+                    if padding > 0:
+                        hashed_dict = np.append(hashed_dict, [0] * padding)
+                        #print("after --- ", len(hashed_dict))
+                    else:
+                        print("===> ERROOOOOR: data is already too long !!!!")
         return hashed_dict
+
+    def obs_test(self, obs):
+        #print(obs, "\n\n")
+        print("------> in obs")
+        obs_full_len = 0
+        for a in obs:
+            full_len = 1
+            if type(obs[a]) == list:
+                print("------> in ", a)
+                full_len = self.obs_test_list(obs[a], a)
+                print("<------ out ", a)
+                print("type: ", type(obs[a]), " - full_len: ", full_len, "\n")
+            elif type(obs[a]) == dict:
+                print("------> in ", a)
+                full_len = self.obs_test_dict(obs[a], a)
+                print("<------ out ", a)
+                print("type: ", type(obs[a]), " - full_len: ", full_len, "\n")
+            #print(a, " :")
+            #print(obs[a])
+            obs_full_len += full_len
+        print("<------ out obs")
+        print("obs_len:", len(obs), " - obs_full_len: ", obs_full_len, "\n\n")
+
+    def obs_test_list(self, obs, pos):
+        obs_full_len = 0
+        for a in obs:
+            full_len = 1
+            if type(a) == list:
+                full_len = self.obs_test_list(a, pos)
+            elif type(a) == dict:
+                full_len = self.obs_test_dict(a, pos)
+            #print(a)
+            #print("type: ", type(a), " - full_len: ", full_len, "\n")
+            obs_full_len += full_len
+        return obs_full_len
+
+    def obs_test_dict(self, obs, pos):
+        obs_full_len = 0
+        for a in obs:
+            full_len = 1
+            if type(obs[a]) == list:
+                print("------> in ", (pos + " -> " + a))
+                full_len = self.obs_test_list(obs[a], (pos + " -> " + a))
+                print("<------ out ", (pos + " -> " + a))
+                print("type: ", type(obs[a]), " - full_len: ", full_len, "\n")
+            elif type(obs[a]) == dict:
+                print("------> in ", (pos + " -> " + a))
+                full_len = self.obs_test_dict(obs[a], (pos + " -> " + a))
+                print("<------ out ", (pos + " -> " + a))
+                print("type: ", type(obs[a]), " - full_len: ", full_len, "\n")
+            else:
+                obs_full_len += full_len
+                continue
+            #print(a, " :")
+            #print(obs[a])
+            obs_full_len += full_len
+        return obs_full_len
