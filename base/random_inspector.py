@@ -6,12 +6,9 @@ import json
 import protocol
 from random import randrange
 import random
-import time
-import sys
 
 host = "localhost"
-# port = 12000
-port = int(sys.argv[1])
+port = 12000
 # HEADERSIZE = 10
 
 """
@@ -21,11 +18,10 @@ inspector_logger = logging.getLogger()
 inspector_logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter(
     "%(asctime)s :: %(levelname)s :: %(message)s", "%H:%M:%S")
-filename = "./logs/inspector" + str(port) + ".log"
 # file
-if os.path.exists(filename):
-    os.remove(filename)
-file_handler = RotatingFileHandler(filename , 'a', 1000000, 1)
+if os.path.exists("./logs/inspector.log"):
+    os.remove("./logs/inspector.log")
+file_handler = RotatingFileHandler('./logs/inspector.log', 'a', 1000000, 1)
 file_handler.setLevel(logging.DEBUG)
 file_handler.setFormatter(formatter)
 inspector_logger.addHandler(file_handler)
@@ -66,12 +62,6 @@ class Player():
 
     def handle_json(self, data):
         data = json.loads(data)
-        if data["data"] == "win":
-            self.end = True
-            return
-        elif data["data"] == "lose":
-            self.end = True
-            return
         response = self.answer(data)
         # send back to server
         bytes_data = json.dumps(response).encode("utf-8")
@@ -79,10 +69,8 @@ class Player():
 
     def run(self):
 
-        try:
-            self.connect()
-        except ConnectionRefusedError:
-            os.remove(filename)
+        self.connect()
+
         while self.end is not True:
             received_message = protocol.receive_json(self.socket)
             if received_message:

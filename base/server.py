@@ -9,15 +9,13 @@ import json
 import socket
 import protocol
 
-
 """
     server setup
 """
 link = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# link.setsockopt(socket.IPPROTO_TCP, socket.SO_REUSEADDR, 1)
+link.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 host = ''
-# port = 12000
-port = int(sys.argv[1])
+port = 12000
 link.bind((host, port))
 # list that will later contain the sockets
 clients = []
@@ -152,23 +150,24 @@ class Player:
     def play(self, game):
         logger.info("--\n"+self.role+" plays\n--")
 
+        logger.debug(json.dumps(game.update_game_state(""), indent=4))
         charact = self.select(game.active_tiles,
-                              game.update_game_state())
+                              game.update_game_state(self.role))
 
         moved_characters = self.activate_power(charact,
                                                game,
                                                before | two,
-                                               game.update_game_state())
+                                               game.update_game_state(self.role))
 
         self.move(charact,
                   moved_characters,
                   game.blocked,
-                  game.update_game_state())
+                  game.update_game_state(self.role))
 
         self.activate_power(charact,
                             game,
                             after | two,
-                            game.update_game_state())
+                            game.update_game_state(self.role))
 
     def select(self, t, game_state):
         """
@@ -245,14 +244,18 @@ class Player:
 
                 # white character
                 if charact.color == "white":
-                    for q in game.characters:
-                        if q.position == charact.position and charact != q:
+                    for moved_character in game.characters:
+                        if moved_character.position == charact.position and charact != moved_character:
                             disp = {
-                                x for x in passages[charact.position] if x not in game.blocked or q.position not in game.blocked}
+                                x for x in passages[charact.position] if x not
+                                in game.blocked or moved_character.position not in game.blocked}
 
                             # edit
                             available_positions = list(disp)
-                            question = {"question type": "white character power",
+                            # format the name of the moved character to string
+                            character_to_move = str(
+                                moved_character).split("-")[0]
+                            question = {"question type": "white character power move "+character_to_move,
                                         "data": available_positions,
                                         "game state": game_state}
                             selected_index = ask_question_json(self, question)
@@ -273,14 +276,15 @@ class Player:
                                 f"question : {question['question type']}")
                             logger.info("answer : " +
                                         str(selected_position))
-                            q.position = selected_position
-                            logger.info("new position : "+str(q))
+                            moved_character.position = selected_position
+                            logger.info("new position : "+str(moved_character))
 
                 # purple character
                 if charact.color == "purple":
                     # logger.debug("Rappel des positions :\n" + str(game))
 
                     available_characters = list(colors)
+                    available_characters.remove("purple")
                     question = {"question type": "purple character power",
                                 "data": available_characters,
                                 "game state": game_state}
@@ -341,7 +345,7 @@ class Player:
                     logger.info(f"question : {question['question type']}")
                     logger.info("answer : "+str(game.shadow))
 
-                # blue character
+            # blue character
                 if charact.color == "blue":
 
                     # choose room
@@ -389,6 +393,7 @@ class Player:
                     logger.info("answer : " +
                                 str({selected_room, selected_exit}))
                     game.blocked = {selected_room, selected_exit}
+                    game.blocked_list = list(game.blocked)
         return [charact]
 
     def move(self, charact, moved_characters, blocked, game_state):
@@ -441,14 +446,17 @@ class Game:
         self.blocked = {x, passages[x].copy().pop()}
         self.blocked_list = list(self.blocked)
         self.characters = {Character(c) for c in colors}
-        # tiles are used to draw characters
+        # tiles are used to draw 4 characters at the beginning
+        # of each round
+        # tile means 'tuile'
         self.tiles = [p for p in self.characters]
+        self.active_tiles = []
         # cards are for the red character
         self.cards = self.tiles[:]
         self.fantom = self.cards[randrange(8)]
         logger.info("the fantom is " + self.fantom.color)
         self.cards.remove(self.fantom)
-        self.cards += ['fantom']*3
+        self.cards += ["fantom"]*3
 
         # log
         logger.info("\n=======\nnew game\n=======")
@@ -464,6 +472,8 @@ class Game:
                                    self.characters]
         self.tiles_display = [tile.display() for tile in
                               self.tiles]
+        self.active_tiles_display = [tile.display() for tile in
+                                     self.active_tiles]
 
         self.game_state = {
             "position_carlotta": self.position_carlotta,
@@ -472,7 +482,7 @@ class Game:
             "shadow": self.shadow,
             "blocked": self.blocked_list,
             "characters": self.characters_display,
-            "tiles": self.tiles_display,
+            "active tiles": self.active_tiles_display,
         }
 
     def actions(self):
@@ -509,7 +519,7 @@ class Game:
         # log
         logger.info("\n------------------")
         logger.info(self)
-        logger.debug(json.dumps(self.update_game_state(), indent=4))
+        logger.debug(json.dumps(self.update_game_state(""), indent=4))
 
         # work
         self.actions()
@@ -526,12 +536,6 @@ class Game:
         # work
         while self.position_carlotta < self.exit and len([p for p in self.characters if p.suspect]) > 1:
             self.tour()
-        if self.position_carlotta >= self.exit:
-            send_json_to_player(0, {"data":"lose"})
-            send_json_to_player(1, {"data":"win"})
-        else:
-            send_json_to_player(0,{"data":"win"})
-            send_json_to_player(1, {"data":"lose"})
         # game ends
         if self.position_carlotta < self.exit:
             logger.info(
@@ -554,7 +558,7 @@ class Game:
         message += "".join(["\n"+str(p) for p in self.characters])
         return message
 
-    def update_game_state(self):
+    def update_game_state(self, player_role):
         """
             representation of the global state of the game.
         """
@@ -562,7 +566,10 @@ class Game:
                                    self.characters]
         self.tiles_display = [tile.display() for tile in
                               self.tiles]
+        self.active_tiles_display = [tile.display() for tile in
+                                     self.active_tiles]
         # update
+
         self.game_state = {
             "position_carlotta": self.position_carlotta,
             "exit": self.exit,
@@ -570,8 +577,11 @@ class Game:
             "shadow": self.shadow,
             "blocked": self.blocked_list,
             "characters": self.characters_display,
-            "tiles": self.tiles_display,
+            "active tiles": self.active_tiles_display,
         }
+
+        if (player_role == "fantom"):
+            self.game_state["fantom"] = self.fantom.color
 
         return self.game_state
 
