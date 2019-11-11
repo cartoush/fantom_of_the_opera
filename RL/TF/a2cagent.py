@@ -18,12 +18,12 @@ class A2CAgent:
     def test(self, env, render=True):
         obs, done, ep_reward = env.reset(), False, 0
         while not done:
-            print("\n", obs)
+            # print("\n", obs)
             #self.obs_test(obs)
             hashed_obs = self.hash_obs(obs)
             #print(hashed_obs, "\n")
             action, _ = self.model.action_value(hashed_obs)
-            print("action: ", action)
+            # print("action: ", action)
             obs, reward, done, _ = env.step(action)
             ep_reward += reward
             if render:
@@ -60,6 +60,7 @@ class A2CAgent:
         for update in range(updates):
             print(update)
             for step in range(batch_sz):
+                next_obs = self.hash_obs(next_obs)
                 observations[step] = next_obs.copy()
                 actions[step], values[step] = self.model.action_value(next_obs[None, :])
                 next_obs, rewards[step], dones[step], _ = env.step(actions[step])

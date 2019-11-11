@@ -21,7 +21,6 @@ def receive_json(sock):
 
 
 def send_json(sock, data):
-    print(data)
     length = len(data)
     sock.sendall(struct.pack('!I', length))
     sock.sendall(data)

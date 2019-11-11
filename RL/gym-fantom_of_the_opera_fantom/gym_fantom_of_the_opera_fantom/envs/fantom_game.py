@@ -138,7 +138,7 @@ class Player:
         # this depends on the "activables" variable, which is a set.
         if charact.power and charact.color in activables:
             character_color = charact.display()["color"]
-            question = {"question type": f"activate {character_color} power",
+            question = {"question type": "activate {character_color} power",
                         "data": [0, 1],
                         "game state": game_state}
             power_activation = self.agent.answer(question)
@@ -363,7 +363,7 @@ class Player:
             # this depends on the "activables" variable, which is a set.
             if charact.power and charact.color in before | two:
                 character_color = charact.display()["color"]
-                self.question = {"question type": f"activate {character_color} power",
+                self.question = {"question type": "activate {character_color} power",
                             "data": [0, 1],
                             "game state": game.game_state}
                 yield False
@@ -569,7 +569,7 @@ class Player:
             # this depends on the "activables" variable, which is a set.
             if charact.power and charact.color in after | two:
                 character_color = charact.display()["color"]
-                self.question = {"question type": f"activate {character_color} power",
+                self.question = {"question type": "activate {character_color} power",
                             "data": [0, 1],
                             "game state": game.game_state}
                 yield False
@@ -861,10 +861,10 @@ class Game:
         return self.player_in_training.question, game_globals.calc_reward(True), self.done, {}
 
     def __repr__(self):
-        message = f"Tour: {self.num_tour},\n"
-        message += f"Position Carlotta / exit: {self.position_carlotta}/{self.exit},\n"
-        message += f"Shadow: {self.shadow},\n"
-        message += f"blocked: {self.blocked}"
+        message = "Tour: {self.num_tour},\n"
+        message += "Position Carlotta / exit: {self.position_carlotta}/{self.exit},\n"
+        message += "Shadow: {self.shadow},\n"
+        message += "blocked: {self.blocked}"
         message += "".join(["\n"+str(p) for p in self.characters])
         return message
 
